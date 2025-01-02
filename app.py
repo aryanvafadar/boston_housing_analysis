@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 
 # Shiny App
+from htmltools import HTML
 from shiny import reactive
 from shiny.express import render, ui
 from shinywidgets import render_plotly
@@ -26,6 +27,10 @@ ui.tags.style(
     
     body {
         background-color: #F7FAFC;
+    }
+    
+    br {
+        line-height: 10px;
     }
     
     .nav {
@@ -77,6 +82,13 @@ ui.tags.style(
         margin-bottom: 20px;
     }
     
+    h6 {
+        color: black;
+        text-decoration: underline;
+        font-weight: 900px;
+        margin-bottom: -10px;
+    }
+    
     .card {
         color: #1C435A;
         border-color: #37A6A5;
@@ -121,7 +133,7 @@ with ui.navset_pill(id='tab', selected='Linear Regression'):
                     def frame_sample():
                         df = frame
                         
-                        return df.head(5)
+                        return df.head(10)
                         
                 # Card for the linear regression model results    
                 with ui.card():
@@ -144,6 +156,12 @@ with ui.navset_pill(id='tab', selected='Linear Regression'):
                         
                         results_frame.columns = ["Metric", "Value"]
                         
+                        results_frame['Description'] = [
+                            "How well the regression line approximates the actual data.",
+                            "Average of the absolute differences between the predicted and actual target values.",
+                            "Average squared difference between the predicted and actual target values."
+                        ]
+                        
                         return results_frame
                         
             # Column wrap for Residual Plot and Predicted vs Actual Plot
@@ -152,122 +170,145 @@ with ui.navset_pill(id='tab', selected='Linear Regression'):
                 # Residual Plot 
                 with ui.card():
                     
-                    ui.card_header('Residual Plot for Linear Regression Model')
-                    
-                    @render_plotly
-                    def linear_regression_residual_plot():
+                    with ui.layout_sidebar():
                         
-                        # Grab the necessary variables
-                        X_test, X_train, y_test, y_train = create_testing_training_data()
-                        lr, predict, r2, mean_abs_err, mean_sq_err = linear_regression_model() 
+                        with ui.sidebar(open='open', position='left'):
+                            
+                            ui.h6("Residual Plot Notes")
+                            ui.HTML(
+                                """
+                                A Residual is the difference between the predicted value and the actual value. A small residual value and/or one close to the horizontal line represents a strong prediction. Siginifcant residual values indicate model improvements are needed.
+                                """
+                                
+                            )
                         
-                        # convert y_test to a numpy array
-                        y_test = np.array(y_test)
+                        ui.card_header('Residual Plot for Linear Regression Model')
                         
-                        # Calculate the residuals and flatten/ravel into 1d arrays for dataframe creation
-                        residuals = (predict - y_test).ravel()
-                        predict = predict.flatten()
-                        
-                        print(predict.shape)
-                        print(residuals.shape)
-                        
-                        # Create a dataframe for easier plotting
-                        df = pd.DataFrame(
-                            {
-                                "Predicted": predict,
-                                "Residuals": residuals
-                            }
-                        )
-                        
-                        # plot the results
-                        fig = px.scatter(data_frame=df,
-                                        x='Predicted',
-                                        y='Residuals',
-                                        color='Residuals',
-                                        color_continuous_scale=px.colors.diverging.delta,
-                                        title='Residual Plot For Linear Regression Model',
-                                        labels={
-                                            'Predicted': 'Predicted Values',
-                                            'Residuals': 'Residual Values'
-                                        })
-                        
-                        fig.add_hline(
-                            y=0,
-                            line_dash='dash',
-                            line_color='#808080'
-                        )
-                        
-                        fig.update_layout(
-                            title=dict(x=0.5),
-                            plot_bgcolor='#FCFCFC',
-                            xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
-                            yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
-                            coloraxis_showscale=False
-                            # font=dict(
-                            #     size=12,
-                            #     color='black' 
-                            # ),
-                        )
-                        
-                        return fig
-                
+                        @render_plotly
+                        def linear_regression_residual_plot():
+                                
+                                # Grab the necessary variables
+                                X_test, X_train, y_test, y_train = create_testing_training_data()
+                                lr, predict, r2, mean_abs_err, mean_sq_err = linear_regression_model() 
+                                
+                                # convert y_test to a numpy array
+                                y_test = np.array(y_test)
+                                
+                                # Calculate the residuals and flatten/ravel into 1d arrays for dataframe creation
+                                residuals = (predict - y_test).ravel()
+                                predict = predict.flatten()
+                                
+                                print(predict.shape)
+                                print(residuals.shape)
+                                
+                                # Create a dataframe for easier plotting
+                                df = pd.DataFrame(
+                                    {
+                                        "Predicted": predict,
+                                        "Residuals": residuals
+                                    }
+                                )
+                                
+                                # plot the results
+                                fig = px.scatter(data_frame=df,
+                                                x='Predicted',
+                                                y='Residuals',
+                                                color='Residuals',
+                                                color_continuous_scale=px.colors.diverging.delta,
+                                                title='Residual Plot For Linear Regression Model',
+                                                labels={
+                                                    'Predicted': 'Predicted Values',
+                                                    'Residuals': 'Residual Values'
+                                                })
+                                
+                                fig.add_hline(
+                                    y=0,
+                                    line_dash='dash',
+                                    line_color='#808080'
+                                )
+                                
+                                fig.update_layout(
+                                    title=dict(x=0.5),
+                                    plot_bgcolor='#FCFCFC',
+                                    xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                    yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                    coloraxis_showscale=False
+                                    # font=dict(
+                                    #     size=12,
+                                    #     color='black' 
+                                    # ),
+                                )
+                                
+                                return fig
+                            
                 # Predicted vs Actual plot        
                 with ui.card():
                 
-                    ui.card_header('Actual vs Predicted Values')
+                    with ui.layout_sidebar():
+                        
+                        with ui.sidebar(open='open', position='left'):
+                            
+                            ui.h6("Plot Notes")
+                            ui.HTML(
+                                """
+                                This chart compares the predicted values to the actual values. Data points closest to the diagonal line represent strong/accurate predictions, whereas points far from the line represent areas of improvement within our model.
+                                """
+                            )
+                            
+                        ui.card_header('Actual vs Predicted Values')
                     
-                    @render_plotly
-                    def linear_regression_predict_vs_actual():
-                        
-                        # Import our training and testing variables
-                        X_test, X_train, y_test, y_train = create_testing_training_data()
-                        
-                        # import the results
-                        lr, predict, r2, mean_abs_err, mean_sq_err = linear_regression_model()
-                        
-                        # create a dataframe for easier plotting 
-                        df = pd.DataFrame(data={
-                            "y_test": np.array(y_test).flatten(),
-                            'prediction': predict.flatten()
-                        })
-                        
-                        # Create the scatter plot
-                        figure = px.scatter(data_frame=df,
-                                            x='y_test',
-                                            y='prediction',
-                                            color='prediction',
-                                            color_continuous_scale=px.colors.sequential.GnBu,
-                                            title='Actual vs. Predicted Values',
-                                            labels={
-                                                'y_test': 'Actual Values',
-                                                'prediction': 'Predicted Values'
-                                            })
-                        
-                        # Create the diagonal line
-                        figure.add_scatter(
-                            x=[df['y_test'].min() - 2, df['y_test'].max()+ 2],
-                            y=[df['y_test'].min() - 2, df['y_test'].max() + 2],
-                            mode='lines',
-                            line=dict(color='#808080',
-                                    dash='dash',
-                                    width=2),
-                            name='Ideal Fit Line'
-                        )
-                        
-                        figure.update_layout(
-                            title=dict(x=0.5),
-                            plot_bgcolor='#FCFCFC',
-                            xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
-                            yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
-                            coloraxis_showscale=False
-                            # font=dict(
-                            #     size=12,
-                            #     color='black' 
-                            # ),
-                        )
-                        
-                        return figure
-                
+                        @render_plotly
+                        def linear_regression_predict_vs_actual():
+                            
+                            # Import our training and testing variables
+                            X_test, X_train, y_test, y_train = create_testing_training_data()
+                            
+                            # import the results
+                            lr, predict, r2, mean_abs_err, mean_sq_err = linear_regression_model()
+                            
+                            # create a dataframe for easier plotting 
+                            df = pd.DataFrame(data={
+                                "y_test": np.array(y_test).flatten(),
+                                'prediction': predict.flatten()
+                            })
+                            
+                            # Create the scatter plot
+                            figure = px.scatter(data_frame=df,
+                                                x='y_test',
+                                                y='prediction',
+                                                color='prediction',
+                                                color_continuous_scale=px.colors.sequential.GnBu,
+                                                title='Actual vs. Predicted Values',
+                                                labels={
+                                                    'y_test': 'Actual Values',
+                                                    'prediction': 'Predicted Values'
+                                                })
+                            
+                            # Create the diagonal line
+                            figure.add_scatter(
+                                x=[df['y_test'].min() - 2, df['y_test'].max()+ 2],
+                                y=[df['y_test'].min() - 2, df['y_test'].max() + 2],
+                                mode='lines',
+                                line=dict(color='#808080',
+                                        dash='dash',
+                                        width=2),
+                                name='Ideal Fit Line'
+                            )
+                            
+                            figure.update_layout(
+                                title=dict(x=0.5),
+                                plot_bgcolor='#FCFCFC',
+                                xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                coloraxis_showscale=False
+                                # font=dict(
+                                #     size=12,
+                                #     color='black' 
+                                # ),
+                            )
+                            
+                            return figure
+        
             # Column Wrap for Features Importance
             with ui.layout_column_wrap(width=1/1):
             
@@ -312,10 +353,42 @@ with ui.navset_pill(id='tab', selected='Linear Regression'):
                         
                         
                         return figure
+                    
+                    ui.h6("What is Features Importance?")
+                    ui.HTML(
+                        """
+                        <p style="font-size: 16px; line-height: 1.25; text-align: justify; color: #333;">
+                            <strong>Features Importance</strong> refers to the relative importance of each feature 
+                            (input data / independent variable) in contributing to the prediction of a machine learning model. 
+                            It provides a quick and easily interpretable visual to determine which features have the highest 
+                            and lowest impact on the model. <br><br>
+                            
+                            In <em>linear regression</em>, features importance is derived from the <strong>coefficients</strong>. 
+                            The coefficients indicate how much the target variable changes for a unit increase in the feature, 
+                            holding all the other features constant. The larger the coefficient, the higher the impact / importance 
+                            on the end prediction. <br><br>
+                            
+                            Coefficients can have a <strong>negative</strong> or <strong>positive</strong> relationship with the 
+                            target variable (AKA the <strong>Label</strong>). <br><br>
+                            
+                            <em>Note:</em> The coefficients above have been standardized.
+                        </p>
+                        """
+                    )
+                    
+                    
+                    
+                    
                         
     with ui.nav_panel("Logistic Regression"):
         
         "TODO - CONTENT GOES HERE"          
+
+
+
+
+
+
 
 # Reactive Calcs for Our Linear Regression Model
 @reactive.Calc
@@ -356,4 +429,3 @@ def linear_regression_model():
     mean_sq_err = mean_squared_error(y_true=y_test, y_pred=predict)
     
     return lr, predict, r2, mean_abs_err, mean_sq_err
-
