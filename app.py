@@ -120,6 +120,9 @@ with ui.navset_pill(id='tab', selected='Linear Regression'):
         with ui.div():
             
             ui.h3("Linear Regression Model")
+            
+            # Column wrap for model parameter adjustments
+            ui.input_numeric(id="lr_test_size", label="Enter Size of Test Data: ",value=1, min=1, max=51, step=2)    
 
             # Column wrap for our sample dataframe and linear regression model results
             with ui.layout_column_wrap(width=1/2):
