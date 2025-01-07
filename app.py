@@ -972,7 +972,7 @@ with ui.navset_pill(id='tab', selected='Random Forests'):
                             )
                         
                         return figure
-
+            
 
 
 
