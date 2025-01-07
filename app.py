@@ -917,7 +917,69 @@ with ui.navset_pill(id='tab', selected='Random Forests'):
                 with ui.card():
                     
                     ui.card_header("Actual vs. Predicted Values")
-            
+
+                    @render_plotly
+                    def rf_actual_vs_predicted():
+
+                        # get our variables      
+                        X_train, X_test, y_train, y_test = rf_training_testing_data()
+                        rf, predict, oob_score, r2, mae, mse = rf_model()
+
+                        # convert to 1d numpy arrays
+                        y_test = np.array(y_test).flatten()
+                        predict = predict.flatten()
+
+                        # create the frame
+                        act_pred_frame = pd.DataFrame(
+                            data={
+                                'Actual': y_test,
+                                'Predicted': predict
+                            }
+                        )
+
+                        # create the plot
+                        figure = px.scatter(
+                            data_frame=act_pred_frame,
+                            x='Actual',
+                            y='Predicted',
+                            title='Actual vs Predicted Values',
+                            color='Predicted',
+                            color_continuous_scale=px.colors.sequential.GnB
+                        )
+
+                        # add the vertical line
+                        figure.add_scatter(
+                            x=[act_pred_frame['Actual'].min(), act_pred_frame['Actual'].max()],
+                            y=[act_pred_frame['Predicted'].min(), act_pred_frame['Predicted'].max()],
+                            mode='lines',
+                            line=dict(color='#808080',
+                                    dash='dash',
+                                    width=2),
+                            name='Ideal Fit Line'
+                        )
+
+                        # update plot background and remove color scale
+                        figure.update_layout(
+                                title=dict(x=0.5),
+                                plot_bgcolor='#FCFCFC',
+                                xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                coloraxis_showscale=False
+                                # font=dict(
+                                #     size=12,
+                                #     color='black' 
+                                # ),
+                            )
+                        
+                        return figure
+
+
+
+
+
+
+
+
 # Reactive Calcs for Our Linear Regression Model
 @reactive.Calc
 def create_testing_training_data():
