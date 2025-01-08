@@ -14,6 +14,7 @@ from shiny.express import render, ui, input
 from shinywidgets import render_plotly
 
 # SkLearn Library
+from sklearn import svm
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor
@@ -111,17 +112,213 @@ ui.tags.style(
 
 ui.h1("Boston Housing Machine Learning Model")
 
-with ui.navset_pill(id='tab', selected='Random Forests'):
+with ui.navset_pill(id='tab', selected='Support Vector Regression'):
     
-    # PANEL 1 - Model Summaries
-    with ui.nav_panel(title="Model Summary"):
+    # PANEL 1 - Support Vector Regression Model
+    with ui.nav_panel("Support Vector Regression"):
         
-        # column wrap summarizing the scores of each model
-        with ui.layout_column_wrap():
+        # div for SVR Model
+        ui.div()
+        
+        ui.h3("Support Vector Regression Model")
+        
+        # Column wrap for hyperparamater tuning
+        with ui.layout_column_wrap(width=1/4):
             
-            pass
+            # set svr test size
+            ui.input_numeric(id="svr_size", label="Select Model Test Size: ", value=30, min=10, max=40, step=2)  
             
-    # PANEL 2 - Linear Regression Panel    
+            # set kernel
+            ui.input_select(  
+                id="svr_kernel",  
+                label="Select Kernel: ",  
+                choices={"rbf": "RBF", "linear": "Linear", "Poly": "Polynomial", "sigmoid": "Sigmoid"}, 
+                selected="rbf"
+            )  
+                        
+            # set svr C param
+            ui.input_numeric(id="svr_c", label="Set C Value (Regularization): ", value=100, min=10, max=120, step=5)
+            
+            # set svr epsilon
+            ui.input_numeric(id="svr_epsilon", label="Set Epsilon Value: ", value=0.1, min=0.05, max=2.0, step=0.05)
+            
+        # Column wrap for sample dataset and accuracy scores
+        with ui.layout_column_wrap(width=1/2):
+            
+            # Sample Dataset card
+            with ui.card():
+                
+                ui.card_header("Dataset Sample")
+                
+                @render.data_frame
+                def display_frame_6():
+                    
+                    return frame.head(10)
+            
+            # Accuracy Score card    
+            with ui.card():
+                
+                ui.card_header("Accuracy Scores")
+        
+                @render.data_frame
+                def svr_results():
+                    
+                    try:
+                        # get variables
+                        X_train, X_test, y_train, y_test, svr, predict, r2, mae, mse = svr_model_2()
+                        print(r2)
+                        print(mae)
+                        print(mse)
+                        
+                        # create frane
+                        results_frame = pd.DataFrame(
+                            data={
+                                "R2 Score": [round(r2, 4)],
+                                "Mean Absolute Error": [round(mae, 2)],
+                                "Mean Squared Error": [round(mse, 2)]
+                            }
+                        ).transpose().reset_index()
+                        
+                        results_frame.columns = ['Metric', 'Values']
+                        
+                        results_frame['Description'] = 'TODO'
+                        
+                        return results_frame
+                        
+                    except Exception as e:
+                        print(f"Received Error: {e}")
+         
+        # Column wrap for Residuals and Actual vs Predicted Plot
+        with ui.layout_column_wrap(width=1/2):
+            
+            # card for residuals
+            with ui.card():
+                
+                ui.card_header("Residual Plot")
+                
+                @render_plotly
+                def svr_residuals():
+                    
+                    # get variables
+                    X_train, X_test, y_train, y_test, svr, predict, r2, mae, mse = svr_model_2()
+                    
+                    # prepare data for arithmetic
+                    actual = np.array(y_test).flatten()
+                    predict = predict.flatten()
+                    
+                    # calculate residuals
+                    residuals = (predict - actual)
+                    
+                    # create the frame
+                    residual_frame = pd.DataFrame(
+                        data={
+                            "Actual": actual,
+                            "Residual": residuals
+                        }
+                    )
+                    
+                    # plot the figure
+                    figure = px.scatter(
+                        data_frame=residual_frame,
+                        x='Actual',
+                        y='Residual',
+                        labels={
+                            "Actual": "Actual Values",
+                            "Residual": "Residual Values"
+                            },
+                        title='Residual Plot for Support Vector Regression Model',
+                        color='Residual',
+                        color_continuous_scale=px.colors.diverging.delta
+                    )
+                    
+                    # add horizontal line
+                    figure.add_hline(
+                        y=0,
+                        line_dash='dash',
+                        line_color='#808080'
+                    )
+                    
+                    figure.update_layout(
+                                    title=dict(x=0.5),
+                                    plot_bgcolor='#FCFCFC',
+                                    xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                    yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                                    coloraxis_showscale=False
+                                    # font=dict(
+                                    #     size=12,
+                                    #     color='black' 
+                                    # ),
+                                )
+                    
+                    # return figure
+                    return figure
+
+            # card for actual vs predicted
+            with ui.card():
+                
+                ui.card_header("Actual vs Predicted Values")
+                
+                @render_plotly
+                def svr_actual_vs_predict():
+                    
+                    # get variables
+                    X_train, X_test, y_train, y_test, svr, predict, r2, mae, mse = svr_model_2()
+                    
+                    # format values
+                    actual = np.array(y_test).flatten()
+                    predict = predict.flatten()
+                    
+                    # create frame
+                    df = pd.DataFrame(
+                        data={
+                            "Actual": actual,
+                            "Predict": predict
+                        }
+                    )
+                    
+                    # create plot
+                    figure = px.scatter(
+                        data_frame=df,
+                        x='Actual',
+                        y='Predict',
+                        title='Actual vs. Predicted Values',
+                        labels={
+                            'Actual': "Actual Values",
+                            'Predict': "Predicted Values"
+                        },
+                        color='Predict',
+                        color_continuous_scale=px.colors.sequential.GnBu
+                    )
+                    
+                    # add veritical line
+                    figure.add_scatter(
+                        x=[df['Actual'].min(), df['Actual'].max()],
+                        y=[df['Predict'].min(), df['Predict'].max()],
+                        mode='lines',
+                        line=dict(
+                            color='#808080',
+                            dash='dash',
+                            width=2
+                        ),
+                        name='Ideal Fit Line'    
+                    )
+                    
+                    # update plot layout        
+                    figure.update_layout(
+                        title=dict(x=0.5),
+                        plot_bgcolor='#FCFCFC',
+                        xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                        yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                        coloraxis_showscale=False
+                        # font=dict(
+                        #     size=12,
+                        #     color='black' 
+                        # ),
+                    )
+                    
+                    return figure
+           
+    # PANEL 2 - Linear Regression Model    
     with ui.nav_panel("Linear Regression"):
         
         # Div for Linear Regression Model
@@ -575,13 +772,13 @@ with ui.navset_pill(id='tab', selected='Random Forests'):
             # Column wrap for knn validation curve
             # TODO: KNN VALIDATION CURVE
     
-    # PANEL - 4 Decision Tree                
-    with ui.nav_panel("Regressive Decision Tree"):
+    # PANEL - 4 Decision Tree Model            
+    with ui.nav_panel("Decision Trees"):
         
         # div for decision trees
         with ui.div():
             
-            ui.h3("Regression Decision Trees")
+            ui.h3("Regressive Decision Trees")
             
             # column wrap for hyperparameter tuning
             with ui.layout_column_wrap(width=1/4):
@@ -796,7 +993,7 @@ with ui.navset_pill(id='tab', selected='Random Forests'):
                         
                         return figure
                         
-    # PANEL - 5 Random Forests  
+    # PANEL - 5 Random Forests Model
     with ui.nav_panel("Random Forests"):
         
         # div for random forest models
@@ -944,7 +1141,7 @@ with ui.navset_pill(id='tab', selected='Random Forests'):
                             y='Predicted',
                             title='Actual vs Predicted Values',
                             color='Predicted',
-                            color_continuous_scale=px.colors.sequential.GnB
+                            color_continuous_scale=px.colors.sequential.GnBu
                         )
 
                         # add the vertical line
@@ -973,12 +1170,84 @@ with ui.navset_pill(id='tab', selected='Random Forests'):
                         
                         return figure
             
+            # Column wrap for feature importance
+            with ui.layout_column_wrap(width=1/1):
+                
+                with ui.card():
+                    ui.card_header("Random Forest Feature Importance")
+                    
+                    @render_plotly
+                    def rf_important_features():
+                        
+                        # get variables
+                        X_train, X_test, y_train, y_test = rf_training_testing_data()
+                        rf, predict, oob_score, r2, mae, mse = rf_model()
+                        
+                        # get important features & features
+                        important_features = rf.feature_importances_
+                        features = frame.columns[:-1]
+                        
+                        # create the frame
+                        feat_frame = pd.DataFrame(
+                            data={
+                                "Features": features,
+                                "Important": important_features
+                            }
+                        )
+                        
+                                                # Create the plot
+                        figure = px.bar(data_frame=feat_frame,
+                                        orientation='h',
+                                        x='Important',
+                                        y='Features',
+                                        title='Decision Tree Feature Importance',
+                                        color='Important',
+                                        color_continuous_scale=px.colors.diverging.Tealrose)
+                        
+                        
+                        figure.update_layout(
+                            title=dict(x=0.5),
+                            plot_bgcolor='#FCFCFC',
+                            xaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                            yaxis=dict(showgrid=True, gridcolor='#F0F7E8'),
+                            coloraxis_showscale=False
+                        )
+                        
+                        return figure
 
 
 
 
-
-
+# Reactive Calc for our Support Vector Regression Model
+@reactive.Calc
+def svr_model_2():
+    
+    # get testing and training data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=input.svr_size(), random_state=2792)
+    
+    # create model
+    svr = svm.SVR(
+        kernel=input.svr_kernel(),
+        C=input.svr_c(),
+        epsilon=input.svr_epsilon()
+    )
+    
+    # train the model
+    svr.fit(X=X_train, y=y_train)
+    
+    # make a prediction
+    predict = svr.predict(X=X_test)
+    
+    # get scores
+    r2 = r2_score(y_true=y_test, y_pred=predict)
+    mae = mean_absolute_error(y_true=y_test, y_pred=predict)
+    mse = mean_squared_error(y_true=y_test, y_pred=predict)
+    
+    print(r2)
+    print(mae)
+    print(mse)
+    
+    return X_train, X_test, y_train, y_test, svr, predict, r2, mae, mse 
 
 # Reactive Calcs for Our Linear Regression Model
 @reactive.Calc
