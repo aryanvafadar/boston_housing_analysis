@@ -317,14 +317,14 @@ with ui.navset_pill(id='tab', selected='Support Vector Regression'):
                     )
                     
                     return figure
-           
+                          
     # PANEL 2 - Linear Regression Model    
     with ui.nav_panel("Linear Regression"):
         
         # Div for Linear Regression Model
         with ui.div():
             
-            ui.h3("Linear Regression Model")
+            ui.h3("Linear Regression Model Banana")
             
             # Column wrap for model paramater selections
             with ui.layout_column_wrap(width=1/3):
@@ -1411,8 +1411,3 @@ def rf_model():
     mse = mean_squared_error(y_test, predict)
     
     return rf, predict, oob_score, r2, mae, mse
-
-
-
-
-
